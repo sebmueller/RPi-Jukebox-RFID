@@ -27,7 +27,7 @@
 
 #############################################################
 # $DEBUG true|false
-DEBUG=true
+DEBUG=false
 
 # Set the date and time of now
 NOW=`date +%Y-%m-%d.%H:%M:%S`
@@ -57,7 +57,7 @@ AUDIOFOLDERSPATH=`cat $PATHDATA/../settings/Audio_Folders_Path`
 # Path to folder containing playlists
 # 1. create a default if file does not exist
 if [ ! -f $PATHDATA/../settings/Playlists_Folders_Path ]; then
-    echo "/tmp" > $PATHDATA/../settings/Playlists_Folders_Path
+    echo "/var/lib/mopidy/playlists" > $PATHDATA/../settings/Playlists_Folders_Path
     chmod 777 $PATHDATA/../settings/Playlists_Folders_Path
 fi
 # 2. then|or read value from file
@@ -273,19 +273,19 @@ if [ $DEBUG == "true" ]; then echo "# Type of play \$VALUE: $VALUE" >> $PATHDATA
 # - AND (-a) 
 # - $FOLDER is set (! -z ${FOLDER+x})
 # - AND (-a) 
-# - and points to existing directory (-d "$AUDIOFOLDERSPATH/$FOLDER")
+# - and points to existing directory (-d "${AUDIOFOLDERSPATH}/${FOLDER}")
 if [ ! -z "$FOLDER" -a ! -z ${FOLDER+x} -a -d "${AUDIOFOLDERSPATH}/${FOLDER}" ]; then
 
     if [ $DEBUG == "true" ]; then echo "\$FOLDER set, not empty and dir exists: ${AUDIOFOLDERSPATH}/${FOLDER}" >> $PATHDATA/../logs/debug.log; fi
 
     # if we play a folder the first time, add some sensible information to the folder.conf
-    if [ ! -f "$AUDIOFOLDERSPATH/$FOLDER/folder.conf" ]; then
+    if [ ! -f "${AUDIOFOLDERSPATH}/${FOLDER}/folder.conf" ]; then
         # now we create a default folder.conf file by calling this script
         # with the command param createDefaultFolderConf
         # (see script for details)
         # the $FOLDER would not need to be passed on, because it is already set in this script
         # see inc.writeFolderConfig.sh for details
-        . $PATHDATA/inc.writeFolderConfig.sh -c=createDefaultFolderConf -d="$FOLDER"
+        . $PATHDATA/inc.writeFolderConfig.sh -c=createDefaultFolderConf -d="${FOLDER}"
     fi
 
     # get the name of the last folder played. As mpd doesn't store the name of the last
@@ -299,14 +299,14 @@ if [ ! -z "$FOLDER" -a ! -z ${FOLDER+x} -a -d "${AUDIOFOLDERSPATH}/${FOLDER}" ];
     if [ "$VALUE" == "recursive" ]; then
         # set path to playlist
         # replace subfolder slashes with " % "
-        PLAYLISTPATH="${PLAYLISTSFOLDERPATH}/${FOLDER//\//\ %\ } %RCRSV%.m3u"
+        PLAYLISTPATH="${PLAYLISTSFOLDERPATH}/${FOLDER//\//\ %\ } %RCRSV%.m3u8"
         PLAYLISTNAME="${FOLDER//\//\ %\ } %RCRSV%"
         $PATHDATA/playlist_recursive_by_folder.php folder="${FOLDER}" list='recursive' > "${PLAYLISTPATH}"
         if [ $DEBUG == "true" ]; then echo "$PATHDATA/playlist_recursive_by_folder.php folder=\"${FOLDER}\" list='recursive' > \"${PLAYLISTPATH}\""   >> $PATHDATA/../logs/debug.log; fi
     else
         # set path to playlist
         # replace subfolder slashes with " % "
-        PLAYLISTPATH="${PLAYLISTSFOLDERPATH}/${FOLDER//\//\ %\ }.m3u"
+        PLAYLISTPATH="${PLAYLISTSFOLDERPATH}/${FOLDER//\//\ %\ }.m3u8"
         PLAYLISTNAME="${FOLDER//\//\ %\ }"
         $PATHDATA/playlist_recursive_by_folder.php folder="${FOLDER}" > "${PLAYLISTPATH}"
         if [ $DEBUG == "true" ]; then echo "$PATHDATA/playlist_recursive_by_folder.php folder=\"${FOLDER}\" > \"${PLAYLISTPATH}\""   >> $PATHDATA/../logs/debug.log; fi
@@ -329,8 +329,7 @@ if [ ! -z "$FOLDER" -a ! -z ${FOLDER+x} -a -d "${AUDIOFOLDERSPATH}/${FOLDER}" ];
         
         # check if 
         # - $SECONDSWIPE is set to toggle pause/play ("$SECONDSWIPE" == "PAUSE") 
-        # - AND (-a) 
-        # - AND (-a) 
+        # - AND (-a)
         # - check the length of the playlist, if =0 then it was cleared before, a state, which should only
         #   be possible after a reboot ($PLLENGTH -gt 0)
         PLLENGTH=$(echo -e "status\nclose" | nc -w 1 localhost 6600 | grep -o -P '(?<=playlistlength: ).*')
@@ -390,6 +389,7 @@ if [ ! -z "$FOLDER" -a ! -z ${FOLDER+x} -a -d "${AUDIOFOLDERSPATH}/${FOLDER}" ];
        
         # load new playlist and play
         if [ $DEBUG == "true" ]; then echo "Command: $PATHDATA/playout_controls.sh -c=playlistaddplay -v=\"${PLAYLISTNAME}\" -d=\"${FOLDER}\"" >> $PATHDATA/../logs/debug.log; fi
+		# play playlist
         # the variable passed on to play is NOT the folder name, but the playlist name
         # because (see above) a folder can be played recursively (including subfolders) or flat (only containing files)        
         $PATHDATA/playout_controls.sh -c=playlistaddplay -v="${PLAYLISTNAME}" -d="${FOLDER}"

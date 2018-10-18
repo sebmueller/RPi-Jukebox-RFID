@@ -1,4 +1,4 @@
-# Forked from Francisco Sahli's https://github.com/fsahli/music-cards/blob/master/config.py
+#!/usr/bin/env python2
 
 import os.path
 from evdev import InputDevice, list_devices
@@ -16,5 +16,3 @@ dev_id = int(raw_input('Device Number: '))
 with open(path + '/deviceName.txt','w') as f:
 	f.write(devices[dev_id].name)
 	f.close()
-
-
